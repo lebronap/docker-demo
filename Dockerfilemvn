@@ -1,0 +1,32 @@
+# 使用官方的 Maven 镜像作为基础镜像
+#FROM maven:3.8.4-openjdk-8 AS build
+FROM maven:3.3.9-jdk-8-alpine AS build
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制项目的 pom.xml 到容器中并安装依赖
+COPY pom.xml .
+RUN mvn dependency:go-offline
+
+# 复制整个项目到容器中
+COPY . .
+
+# 构建项目
+RUN mvn clean package -DskipTests
+
+# 使用官方的 OpenJDK 镜像作为基础镜像
+#FROM openjdk:8-jre-slim
+FROM maven:3.3.9-jdk-8-alpine
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制构建好的 JAR 文件到容器中
+COPY --from=build /app/target/*.jar app.jar
+
+# 暴露应用的端口
+EXPOSE 8080
+
+# 定义默认启动命令
+CMD ["java", "-jar", "app.jar"]
